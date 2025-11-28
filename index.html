@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tavola Periodica Avanzata</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-main: #f0f0f0;
+            
+            /* Colori Categorie (Sfondi) */
+            --cat-alkali: #ff6666;        /* Metalli Alcalini */
+            --cat-alkaline: #ffcc99;      /* Alcalino-terrosi */
+            --cat-transition: #ffdb4d;    /* Metalli di transizione */
+            --cat-post-trans: #99ccff;    /* Metalli del blocco p */
+            --cat-metalloid: #99e699;     /* Semimetalli/Metalloidi */
+            --cat-nonmetal: #4dff88;      /* Non metalli */
+            --cat-halogen: #e6ccff;       /* Alogeni */
+            --cat-noble: #ccccff;         /* Gas Nobili */
+            --cat-lanthanide: #ffb3e6;    /* Lantanidi */
+            --cat-actinide: #ff99cc;      /* Attinidi */
+            --cat-unknown: #ddd;
+
+            /* Colori Stato Fisico (Testo) */
+            --state-solid: #000000;       /* Nero per solidi (su sfondi chiari) */
+            --state-liquid: #0000ff;      /* Blu acceso per liquidi */
+            --state-gas: #cc0000;         /* Rosso scuro per gas */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        /* --- LEGEND --- */
+        .legend-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+            max-width: 1000px;
+            background: #222;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .legend-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 5px;
+        }
+        
+        .legend-title { font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #aaa; }
+        
+        .legend-items { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+
+        .legend-box {
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: black; /* Default text color for legend backgrounds */
+        }
+        
+        .state-legend span { font-weight: bold; padding: 0 5px; }
+
+        /* --- CONTROLS --- */
+        .controls {
+            background: #333;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid #555;
+        }
+
+        input {
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            text-align: center;
+            width: 60px;
+            font-size: 1.1em;
+        }
+
+        button {
+            padding: 8px 15px;
+            background: #4facfe;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #result {
+            margin-top: 15px;
+            text-align: left;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            font-family: monospace;
+            line-height: 1.4;
+        }
+
+        /* --- TABLE --- */
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: 3px;
+            max-width: 1300px;
+            width: 100%;
+        }
+
+        .element {
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 3px;
+            padding: 2px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            transition: transform 0.2s;
+            /* Font di default */
+            font-weight: bold;
+        }
+
+        .element:hover { transform: scale(1.3); z-index: 100; box-shadow: 0 0 10px black; }
+
+        .element .number { font-size: 0.6em; position: absolute; top: 1px; left: 2px; opacity: 0.7; }
+        .element .symbol { font-size: 1.1em; margin-top: 4px; }
+        .element .name { font-size: 0.5em; display: none; opacity: 0.8; margin-top: 1px;}
+
+        @media (min-width: 900px) { .element .name { display: block; } }
+
+        /* Helpers Griglia */
+        .col-span-16 { grid-column: span 16; visibility: hidden; }
+        .col-span-10 { grid-column: span 10; visibility: hidden; }
+        .row-spacer { grid-column: 1 / -1; height: 15px; }
+        .gap-spacer { grid-column: span 1; visibility: hidden;}
+        .lanth-gap { grid-column: span 2; visibility: hidden;}
+
+        /* Classi Categorie (Backgrounds) */
+        .cat-alkali { background-color: var(--cat-alkali); }
+        .cat-alkaline { background-color: var(--cat-alkaline); }
+        .cat-transition { background-color: var(--cat-transition); }
+        .cat-post-trans { background-color: var(--cat-post-trans); }
+        .cat-metalloid { background-color: var(--cat-metalloid); }
+        .cat-nonmetal { background-color: var(--cat-nonmetal); }
+        .cat-halogen { background-color: var(--cat-halogen); }
+        .cat-noble { background-color: var(--cat-noble); }
+        .cat-lanthanide { background-color: var(--cat-lanthanide); }
+        .cat-actinide { background-color: var(--cat-actinide); }
+        .cat-unknown { background-color: var(--cat-unknown); }
+
+        /* Classi Stati (Colore Testo) */
+        .state-solid { color: var(--state-solid); }
+        .state-liquid { color: var(--state-liquid); }
+        .state-gas { color: var(--state-gas); }
+
+    </style>
+</head>
+<body>
+
+    <h1>Tavola Periodica Interattiva</h1>
+
+    <div class="legend-container">
+        <div class="legend-section">
+            <div class="legend-title">Categorie (Sfondo)</div>
+            <div class="legend-items">
+                <div class="legend-box cat-alkali">Alcalini</div>
+                <div class="legend-box cat-alkaline">Alcalino-terrosi</div>
+                <div class="legend-box cat-transition">Metalli Transizione</div>
+                <div class="legend-box cat-post-trans">Metalli Blocco P</div>
+                <div class="legend-box cat-metalloid">Metalloidi</div>
+                <div class="legend-box cat-nonmetal">Non Metalli</div>
+                <div class="legend-box cat-halogen">Alogeni</div>
+                <div class="legend-box cat-noble">Gas Nobili</div>
+                <div class="legend-box cat-lanthanide">Lantanidi</div>
+                <div class="legend-box cat-actinide">Attinidi</div>
+            </div>
+        </div>
+        <div class="legend-section">
+            <div class="legend-title">Stato a 25°C (Colore Testo)</div>
+            <div class="legend-items state-legend" style="background: #ccc; border-radius: 4px; padding: 2px;">
+                <span style="color: var(--state-solid)">Solido</span>
+                <span style="color: var(--state-liquid)">Liquido</span>
+                <span style="color: var(--state-gas)">Gas</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <label>Inserisci Simbolo: <input type="text" id="elementInput" maxlength="3" placeholder="Es. C"></label>
+        <button onclick="calculateFromInput()">Genera</button>
+        <div id="result">Seleziona un elemento...</div>
+    </div>
+
+    <div class="periodic-table" id="periodicTable"></div>
+
+<script>
+    /* DATI CONFIGURAZIONE ELETTRONICA */
+    const orbitals = [
+        { name: '1s', max: 2, n: 1 }, { name: '2s', max: 2, n: 2 }, { name: '2p', max: 6, n: 2 },
+        { name: '3s', max: 2, n: 3 }, { name: '3p', max: 6, n: 3 }, { name: '4s', max: 2, n: 4 },
+        { name: '3d', max: 10, n: 3 }, { name: '4p', max: 6, n: 4 }, { name: '5s', max: 2, n: 5 },
+        { name: '4d', max: 10, n: 4 }, { name: '5p', max: 6, n: 5 }, { name: '6s', max: 2, n: 6 },
+        { name: '4f', max: 14, n: 4 }, { name: '5d', max: 10, n: 5 }, { name: '6p', max: 6, n: 6 },
+        { name: '7s', max: 2, n: 7 }, { name: '5f', max: 14, n: 5 }, { name: '6d', max: 10, n: 6 },
+        { name: '7p', max: 6, n: 7 }
+    ];
+
+    // Eccezioni (configurazioni stabili)
+    const exceptions = {
+        24: { conf: "1s<sup>2</sup> 2s<sup>2</sup> 2p<sup>6</sup> 3s<sup>2</sup> 3p<sup>6</sup> 4s<sup>1</sup> 3d<sup>5</sup>", val: 1 },
+        29: { conf: "1s<sup>2</sup> 2s<sup>2</sup> 2p<sup>6</sup> 3s<sup>2</sup> 3p<sup>6</sup> 4s<sup>1</sup> 3d<sup>10</sup>", val: 1 },
+        42: { conf: "[Kr] 5s<sup>1</sup> 4d<sup>5</sup>", full: true, val: 1 }, // Semplificato per visualizzazione
+        47: { conf: "[Kr] 5s<sup>1</sup> 4d<sup>10</sup>", full: true, val: 1 }
+    };
+
+    /* LISTA ELEMENTI COMPLETA */
+    const elementsList = [
+        {z:1,s:"H",n:"Idrogeno"},{z:2,s:"He",n:"Elio"},
+        {z:3,s:"Li",n:"Litio"},{z:4,s:"Be",n:"Berillio"},{z:5,s:"B",n:"Boro"},{z:6,s:"C",n:"Carbonio"},{z:7,s:"N",n:"Azoto"},{z:8,s:"O",n:"Ossigeno"},{z:9,s:"F",n:"Fluoro"},{z:10,s:"Ne",n:"Neon"},
+        {z:11,s:"Na",n:"Sodio"},{z:12,s:"Mg",n:"Magnesio"},{z:13,s:"Al",n:"Alluminio"},{z:14,s:"Si",n:"Silicio"},{z:15,s:"P",n:"Fosforo"},{z:16,s:"S",n:"Zolfo"},{z:17,s:"Cl",n:"Cloro"},{z:18,s:"Ar",n:"Argon"},
+        {z:19,s:"K",n:"Potassio"},{z:20,s:"Ca",n:"Calcio"},{z:21,s:"Sc",n:"Scandio"},{z:22,s:"Ti",n:"Titanio"},{z:23,s:"V",n:"Vanadio"},{z:24,s:"Cr",n:"Cromo"},{z:25,s:"Mn",n:"Manganese"},{z:26,s:"Fe",n:"Ferro"},{z:27,s:"Co",n:"Cobalto"},{z:28,s:"Ni",n:"Nichel"},{z:29,s:"Cu",n:"Rame"},{z:30,s:"Zn",n:"Zinco"},{z:31,s:"Ga",n:"Gallio"},{z:32,s:"Ge",n:"Germanio"},{z:33,s:"As",n:"Arsenico"},{z:34,s:"Se",n:"Selenio"},{z:35,s:"Br",n:"Bromo"},{z:36,s:"Kr",n:"Cripton"},
+        {z:37,s:"Rb",n:"Rubidio"},{z:38,s:"Sr",n:"Stronzio"},{z:39,s:"Y",n:"Ittrio"},{z:40,s:"Zr",n:"Zirconio"},{z:41,s:"Nb",n:"Niobio"},{z:42,s:"Mo",n:"Molibdeno"},{z:43,s:"Tc",n:"Tecnezio"},{z:44,s:"Ru",n:"Rutenio"},{z:45,s:"Rh",n:"Rodio"},{z:46,s:"Pd",n:"Palladio"},{z:47,s:"Ag",n:"Argento"},{z:48,s:"Cd",n:"Cadmio"},{z:49,s:"In",n:"Indio"},{z:50,s:"Sn",n:"Stagno"},{z:51,s:"Sb",n:"Antimonio"},{z:52,s:"Te",n:"Tellurio"},{z:53,s:"I",n:"Iodio"},{z:54,s:"Xe",n:"Xeno"},
+        {z:55,s:"Cs",n:"Cesio"},{z:56,s:"Ba",n:"Bario"},
+        {z:57,s:"La",n:"Lantanio"},{z:58,s:"Ce",n:"Cerio"},{z:59,s:"Pr",n:"Praseodimio"},{z:60,s:"Nd",n:"Neodimio"},{z:61,s:"Pm",n:"Prometio"},{z:62,s:"Sm",n:"Samario"},{z:63,s:"Eu",n:"Europio"},{z:64,s:"Gd",n:"Gadolinio"},{z:65,s:"Tb",n:"Terbio"},{z:66,s:"Dy",n:"Disprosio"},{z:67,s:"Ho",n:"Olmio"},{z:68,s:"Er",n:"Erbio"},{z:69,s:"Tm",n:"Tulio"},{z:70,s:"Yb",n:"Itterbio"},{z:71,s:"Lu",n:"Lutezio"},
+        {z:72,s:"Hf",n:"Afnio"},{z:73,s:"Ta",n:"Tantalio"},{z:74,s:"W",n:"Tungsteno"},{z:75,s:"Re",n:"Renio"},{z:76,s:"Os",n:"Osmio"},{z:77,s:"Ir",n:"Iridio"},{z:78,s:"Pt",n:"Platino"},{z:79,s:"Au",n:"Oro"},{z:80,s:"Hg",n:"Mercurio"},{z:81,s:"Tl",n:"Tallio"},{z:82,s:"Pb",n:"Piombo"},{z:83,s:"Bi",n:"Bismuto"},{z:84,s:"Po",n:"Polonio"},{z:85,s:"At",n:"Astato"},{z:86,s:"Rn",n:"Radon"},
+        {z:87,s:"Fr",n:"Francio"},{z:88,s:"Ra",n:"Radio"},
+        {z:89,s:"Ac",n:"Attinio"},{z:90,s:"Th",n:"Torio"},{z:91,s:"Pa",n:"Protoattinio"},{z:92,s:"U",n:"Uranio"},{z:93,s:"Np",n:"Nettunio"},{z:94,s:"Pu",n:"Plutonio"},{z:95,s:"Am",n:"Americio"},{z:96,s:"Cm",n:"Curio"},{z:97,s:"Bk",n:"Berkelio"},{z:98,s:"Cf",n:"Californio"},{z:99,s:"Es",n:"Einsteinio"},{z:100,s:"Fm",n:"Fermio"},{z:101,s:"Md",n:"Mendelevio"},{z:102,s:"No",n:"Nobelio"},{z:103,s:"Lr",n:"Laurenzio"},
+        {z:104,s:"Rf",n:"Rutherfordio"},{z:105,s:"Db",n:"Dubnio"},{z:106,s:"Sg",n:"Seaborgio"},{z:107,s:"Bh",n:"Bohrio"},{z:108,s:"Hs",n:"Hassio"},{z:109,s:"Mt",n:"Meitnerio"},{z:110,s:"Ds",n:"Darmstadtio"},{z:111,s:"Rg",n:"Roentgenio"},{z:112,s:"Cn",n:"Copernicio"},{z:113,s:"Nh",n:"Nihonio"},{z:114,s:"Fl",n:"Flerovio"},{z:115,s:"Mc",n:"Moscovio"},{z:116,s:"Lv",n:"Livermorio"},{z:117,s:"Ts",n:"Tennessine"},{z:118,s:"Og",n:"Oganesson"}
+    ];
+
+    /* LOGICA CATEGORIE E STATI */
+    function getCategory(z) {
+        if (z === 1) return 'cat-nonmetal'; // Idrogeno
+        if (z === 2 || [10,18,36,54,86,118].includes(z)) return 'cat-noble';
+        if ([3,11,19,37,55,87].includes(z)) return 'cat-alkali';
+        if ([4,12,20,38,56,88].includes(z)) return 'cat-alkaline';
+        if ([9,17,35,53,85,117].includes(z)) return 'cat-halogen';
+        
+        // Lantanidi e Attinidi
+        if (z >= 57 && z <= 71) return 'cat-lanthanide';
+        if (z >= 89 && z <= 103) return 'cat-actinide';
+
+        // Metalloidi (Semi-metalli) - Diagonale B, Si, Ge, As, Sb, Te, Po
+        const metalloids = [5, 14, 32, 33, 51, 52, 84]; 
+        if (metalloids.includes(z)) return 'cat-metalloid';
+
+        // Altri Non Metalli (C, N, O, P, S, Se)
+        const otherNonMetals = [6, 7, 8, 15, 16, 34];
+        if (otherNonMetals.includes(z)) return 'cat-nonmetal';
+
+        // Metalli del blocco P (Post-transizione): Al, Ga, In, Sn, Tl, Pb, Bi, Fl, Lv...
+        // Semplificazione: Se è nel blocco p e non è metalloide/non-metallo/alogeno/gas nobile
+        // Blocco p: Gruppi 13-18. 
+        // Identifichiamo approssimativamente i post-transizione rimanenti
+        const postTransition = [13, 31, 49, 50, 81, 82, 83, 113, 114, 115, 116];
+        if (postTransition.includes(z)) return 'cat-post-trans';
+
+        // Metalli di Transizione (Blocco d)
+        return 'cat-transition';
+    }
+
+    function getState(z) {
+        // Liquidi a STP
+        if (z === 35 || z === 80) return 'state-liquid'; // Br, Hg
+        // Gas a STP
+        if ([1, 2, 7, 8, 9, 10, 17, 18, 36, 54, 86, 118].includes(z)) return 'state-gas';
+        // Solidi
+        return 'state-solid';
+    }
+
+    /* CALCOLO CONFIGURAZIONE E VALENZA */
+    function calculateData(atomicNumber) {
+        let electrons = atomicNumber;
+        let configStr = "";
+        let maxN = 0;
+        
+        // Calcolo configurazione standard
+        let currentElectrons = {}; // Mappa { "n-orbital": count }
+
+        for (let orb of orbitals) {
+            if (electrons <= 0) break;
+            let take = Math.min(electrons, orb.max);
+            
+            configStr += `${orb.name}<sup>${take}</sup> `;
+            
+            // Per il calcolo di valenza (semplificato: guscio più esterno)
+            if (orb.n > maxN) maxN = orb.n;
+            if (!currentElectrons[orb.n]) currentElectrons[orb.n] = 0;
+            currentElectrons[orb.n] += take;
+            
+            electrons -= take;
+        }
+
+        // Calcolo Elettroni di Valenza (Livello più esterno)
+        // Nota: Per i metalli di transizione la definizione varia, qui usiamo il "Guscio Esterno" standard (ns + np)
+        let valence = currentElectrons[maxN] || 0;
+
+        // Gestione Eccezioni (Cromo, Rame, etc)
+        if (exceptions[atomicNumber]) {
+            if(exceptions[atomicNumber].full) {
+               // Se l'eccezione è definita solo come stringa visuale
+               configStr = exceptions[atomicNumber].conf;
+               valence = exceptions[atomicNumber].val;
+            } else {
+               configStr = exceptions[atomicNumber].conf;
+               valence = exceptions[atomicNumber].val;
+            }
+        }
+
+        return {
+            config: configStr.trim(),
+            valence: valence
+        };
+    }
+
+    function calculateFromInput() {
+        const input = document.getElementById('elementInput').value.trim();
+        const resultDiv = document.getElementById('result');
+        const el = elementsList.find(e => e.s.toLowerCase() === input.toLowerCase());
+
+        if (!el) {
+            resultDiv.innerHTML = "<span style='color:red'>Elemento non trovato!</span>";
+            return;
+        }
+
+        const data = calculateData(el.z);
+        
+        // Recupero stato fisico per testo risultato
+        const stateClass = getState(el.z);
+        let stateText = stateClass === 'state-gas' ? 'Gas' : (stateClass === 'state-liquid' ? 'Liquido' : 'Solido');
+
+        resultDiv.innerHTML = `
+            <strong>${el.n} (${el.s})</strong><br>
+            Numero Atomico (Z): ${el.z}<br>
+            Stato (25°C): ${stateText}<br>
+            <hr style="border:0; border-top:1px solid #444; margin: 5px 0;">
+            Configurazione: ${data.config}<br>
+            Elettroni di valenza (livello esterno): <strong>${data.valence}</strong>
+        `;
+    }
+
+    function displayEl(symbol) {
+        document.getElementById('elementInput').value = symbol;
+        calculateFromInput();
+    }
+
+    /* RENDER DELLA TABELLA */
+    function renderTable() {
+        const table = document.getElementById('periodicTable');
+        
+        const createElDiv = (el) => {
+            const div = document.createElement('div');
+            // Assegna classi: base + categoria + stato
+            div.className = `element ${getCategory(el.z)} ${getState(el.z)}`;
+            div.innerHTML = `<span class="number">${el.z}</span><span class="symbol">${el.s}</span><span class="name">${el.n}</span>`;
+            div.onclick = () => displayEl(el.s);
+            return div;
+        };
+        
+        const addSpacer = (cls) => {
+            const d = document.createElement('div');
+            d.className = cls;
+            table.appendChild(d);
+        };
+
+        // Riga 1
+        table.appendChild(createElDiv(elementsList[0]));
+        addSpacer('col-span-16');
+        table.appendChild(createElDiv(elementsList[1]));
+
+        // Riga 2
+        table.appendChild(createElDiv(elementsList[2]));
+        table.appendChild(createElDiv(elementsList[3]));
+        addSpacer('col-span-10');
+        for(let i=4; i<10; i++) table.appendChild(createElDiv(elementsList[i]));
+
+        // Riga 3
+        table.appendChild(createElDiv(elementsList[10]));
+        table.appendChild(createElDiv(elementsList[11]));
+        addSpacer('col-span-10');
+        for(let i=12; i<18; i++) table.appendChild(createElDiv(elementsList[i]));
+
+        // Riga 4
+        for(let i=18; i<36; i++) table.appendChild(createElDiv(elementsList[i]));
+
+        // Riga 5
+        for(let i=36; i<54; i++) table.appendChild(createElDiv(elementsList[i]));
+
+        // Riga 6
+        table.appendChild(createElDiv(elementsList[54])); // Cs
+        table.appendChild(createElDiv(elementsList[55])); // Ba
+        
+        // Segnaposto Lantanidi
+        const lanthHold = document.createElement('div');
+        lanthHold.className = 'element cat-lanthanide';
+        lanthHold.innerHTML = '<span class="symbol">57-71</span>';
+        table.appendChild(lanthHold);
+        
+        for(let i=71; i<86; i++) table.appendChild(createElDiv(elementsList[i])); // Hf - Rn
+
+        // Riga 7
+        table.appendChild(createElDiv(elementsList[86])); // Fr
+        table.appendChild(createElDiv(elementsList[87])); // Ra
+        
+        // Segnaposto Attinidi
+        const actHold = document.createElement('div');
+        actHold.className = 'element cat-actinide';
+        actHold.innerHTML = '<span class="symbol">89-103</span>';
+        table.appendChild(actHold);
+
+        for(let i=103; i<118; i++) table.appendChild(createElDiv(elementsList[i])); // Rf - Og
+
+        // Separatore
+        addSpacer('row-spacer');
+
+        // Lantanidi (Riga espansa in basso)
+        addSpacer('lanth-gap'); // Sposta a destra per allineare
+        const emptyL = document.createElement('div'); emptyL.style.gridColumn = 'span 1'; table.appendChild(emptyL);
+        for(let i=56; i<71; i++) table.appendChild(createElDiv(elementsList[i]));
+        addSpacer('gap-spacer');
+
+        // Attinidi
+        addSpacer('lanth-gap');
+        const emptyA = document.createElement('div'); emptyA.style.gridColumn = 'span 1'; table.appendChild(emptyA);
+        for(let i=88; i<103; i++) table.appendChild(createElDiv(elementsList[i]));
+    }
+
+    renderTable();
+</script>
+
+</body>
+</html>

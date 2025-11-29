@@ -3,452 +3,604 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tavola Periodica Avanzata</title>
+    <title>Tavola Periodica Interattiva</title>
     <style>
         :root {
             --bg-color: #121212;
+            --modal-bg: #1e1e1e;
             --text-main: #f0f0f0;
+            --accent: #4facfe;
+            --panel-bg: #222;
             
-            /* Colori Categorie (Sfondi) */
-            --cat-alkali: #ff6666;        /* Metalli Alcalini */
-            --cat-alkaline: #ffcc99;      /* Alcalino-terrosi */
-            --cat-transition: #ffdb4d;    /* Metalli di transizione */
-            --cat-post-trans: #99ccff;    /* Metalli del blocco p */
-            --cat-metalloid: #99e699;     /* Semimetalli/Metalloidi */
-            --cat-nonmetal: #4dff88;      /* Non metalli */
-            --cat-halogen: #e6ccff;       /* Alogeni */
-            --cat-noble: #ccccff;         /* Gas Nobili */
-            --cat-lanthanide: #ffb3e6;    /* Lantanidi */
-            --cat-actinide: #ff99cc;      /* Attinidi */
-            --cat-unknown: #ddd;
-
-            /* Colori Stato Fisico (Testo) */
-            --state-solid: #000000;       /* Nero per solidi (su sfondi chiari) */
-            --state-liquid: #0000ff;      /* Blu acceso per liquidi */
-            --state-gas: #cc0000;         /* Rosso scuro per gas */
+            /* Colori Categorie */
+            --cat-alkali: #ff6b6b; --cat-alkaline: #ff9f43; --cat-transition: #feca57;
+            --cat-post-trans: #48dbfb; --cat-metalloid: #1dd1a1; --cat-nonmetal: #00d2d3;
+            --cat-halogen: #5f27cd; --cat-noble: #c8d6e5; --cat-lanthanide: #ff9ff3;
+            --cat-actinide: #f368e0; --cat-unknown: #576574;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            margin: 0; padding: 20px;
         }
 
-        h1 { margin-bottom: 10px; }
-
-        /* --- LEGEND --- */
-        .legend-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 20px;
-            max-width: 1000px;
-            background: #222;
-            padding: 10px;
-            border-radius: 8px;
-        }
+        h1 { text-align: center; margin-bottom: 5px; font-size: 1.8rem; }
         
-        .legend-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 5px;
+        /* --- PANNELLO CONTROLLI --- */
+        details.info-panel {
+            width: 100%; max-width: 900px; margin-bottom: 20px;
+            background: var(--panel-bg); border-radius: 8px; border: 1px solid #333;
         }
+        summary {
+            padding: 10px 20px; cursor: pointer; font-weight: bold;
+            display: flex; align-items: center; justify-content: space-between;
+            color: var(--accent); list-style: none;
+        }
+        summary::after { content: '⚙️ Opzioni & Legenda'; font-size: 0.9rem; color: #aaa;}
+        .info-content { padding: 15px; border-top: 1px solid #333; }
+
+        .heatmap-controls {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;
+            justify-content: center; background: #1a1a1a; padding: 10px; border-radius: 8px;
+        }
+        .hm-btn {
+            padding: 8px 12px; border: 1px solid #444; background: #333;
+            color: white; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .hm-btn:hover { background: #555; }
+        .hm-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: bold; }
+
+        /* Legenda Heatmap */
+        .legend-bar {
+            height: 10px; width: 100%; max-width: 400px; margin: 10px auto;
+            border-radius: 5px; display: none;
+        }
+        .legend-labels { display: none; justify-content: space-between; font-size: 0.75rem; color: #aaa; max-width: 400px; margin: 0 auto; }
         
-        .legend-title { font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #aaa; }
-        
-        .legend-items { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
-
-        .legend-box {
-            display: flex;
-            align-items: center;
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 3px;
-            color: black; /* Default text color for legend backgrounds */
+        /* Legenda Categorie */
+        .cat-legend-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 10px;
         }
-        
-        .state-legend span { font-weight: bold; padding: 0 5px; }
+        .cat-item { display: flex; align-items: center; font-size: 0.75rem; color: #ccc; }
+        .cat-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 
-        /* --- CONTROLS --- */
-        .controls {
-            background: #333;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-            width: 100%;
-            max-width: 600px;
-            border: 1px solid #555;
+        /* --- CONTROLLI INPUT --- */
+        .controls { margin-bottom: 15px; display: flex; gap: 10px; }
+        input { padding: 8px; border-radius: 4px; border: none; text-align: center; width: 80px; }
+        button.search-btn { padding: 8px 15px; background: var(--accent); border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        /* --- TAVOLA (Grid) --- */
+        .table-wrapper {
+            width: 100%; max-width: 1250px; overflow-x: auto; padding-bottom: 20px;
         }
-
-        input {
-            padding: 8px;
-            border-radius: 4px;
-            border: none;
-            text-align: center;
-            width: 60px;
-            font-size: 1.1em;
-        }
-
-        button {
-            padding: 8px 15px;
-            background: #4facfe;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        #result {
-            margin-top: 15px;
-            text-align: left;
-            background: #222;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #444;
-            font-family: monospace;
-            line-height: 1.4;
-        }
-
-        /* --- TABLE --- */
         .periodic-table {
-            display: grid;
-            grid-template-columns: repeat(18, 1fr);
-            gap: 3px;
-            max-width: 1300px;
-            width: 100%;
+            display: grid; grid-template-columns: repeat(18, 60px); gap: 4px;
+            margin: 0 auto; width: max-content;
         }
 
+        /* Intestazioni Gruppi */
+        .group-header {
+            text-align: center; display: flex; flex-direction: column; justify-content: flex-end;
+            padding-bottom: 5px; color: #888; border-bottom: 1px solid #333; margin-bottom: 5px;
+        }
+        .num-iupac { font-size: 1.1rem; font-weight: bold; color: #fff; }
+        .num-trad { font-size: 0.7rem; font-family: serif; }
+
+        /* Elemento */
         .element {
-            border: 1px solid rgba(0,0,0,0.2);
-            border-radius: 3px;
-            padding: 2px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            aspect-ratio: 1 / 1;
-            position: relative;
-            transition: transform 0.2s;
-            /* Font di default */
-            font-weight: bold;
+            width: 60px; height: 60px;
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; position: relative; transition: transform 0.1s;
+            color: #222; font-weight: bold;
         }
+        .element:hover { transform: scale(1.15); z-index: 100; border-color: white; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        .element .number { font-size: 0.6em; position: absolute; top: 2px; left: 3px; opacity: 0.7; }
+        .element .symbol { font-size: 1.2em; font-weight: 800; }
+        .element .name { font-size: 9px; font-weight: normal; letter-spacing: -0.5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center; max-width: 98%; margin-top: 1px; line-height: 1; opacity: 0.9; }
+        .element .val-data { font-size: 0.55em; display: none; margin-top: -2px; color: #000; font-weight: bold;}
 
-        .element:hover { transform: scale(1.3); z-index: 100; box-shadow: 0 0 10px black; }
-
-        .element .number { font-size: 0.6em; position: absolute; top: 1px; left: 2px; opacity: 0.7; }
-        .element .symbol { font-size: 1.1em; margin-top: 4px; }
-        .element .name { font-size: 0.5em; display: none; opacity: 0.8; margin-top: 1px;}
-
-        @media (min-width: 900px) { .element .name { display: block; } }
-
-        /* Helpers Griglia */
+        /* Classi Utility */
         .col-span-16 { grid-column: span 16; visibility: hidden; }
         .col-span-10 { grid-column: span 10; visibility: hidden; }
-        .row-spacer { grid-column: 1 / -1; height: 15px; }
-        .gap-spacer { grid-column: span 1; visibility: hidden;}
-        .lanth-gap { grid-column: span 2; visibility: hidden;}
+        .row-spacer { grid-column: 1 / -1; height: 20px; }
+        .lanth-spacer { grid-column: span 2; visibility: hidden; }
 
-        /* Classi Categorie (Backgrounds) */
-        .cat-alkali { background-color: var(--cat-alkali); }
-        .cat-alkaline { background-color: var(--cat-alkaline); }
-        .cat-transition { background-color: var(--cat-transition); }
-        .cat-post-trans { background-color: var(--cat-post-trans); }
-        .cat-metalloid { background-color: var(--cat-metalloid); }
-        .cat-nonmetal { background-color: var(--cat-nonmetal); }
-        .cat-halogen { background-color: var(--cat-halogen); }
-        .cat-noble { background-color: var(--cat-noble); }
-        .cat-lanthanide { background-color: var(--cat-lanthanide); }
-        .cat-actinide { background-color: var(--cat-actinide); }
-        .cat-unknown { background-color: var(--cat-unknown); }
+        /* Classi Categorie */
+        .cat-alkali { background: var(--cat-alkali); } .cat-alkaline { background: var(--cat-alkaline); }
+        .cat-transition { background: var(--cat-transition); } .cat-post-trans { background: var(--cat-post-trans); }
+        .cat-metalloid { background: var(--cat-metalloid); } .cat-nonmetal { background: var(--cat-nonmetal); }
+        .cat-halogen { background: var(--cat-halogen); } .cat-noble { background: var(--cat-noble); }
+        .cat-lanthanide { background: var(--cat-lanthanide); } .cat-actinide { background: var(--cat-actinide); }
+        .cat-unknown { background: var(--cat-unknown); }
 
-        /* Classi Stati (Colore Testo) */
-        .state-solid { color: var(--state-solid); }
-        .state-liquid { color: var(--state-liquid); }
-        .state-gas { color: var(--state-gas); }
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none;
+            justify-content: center; align-items: center; z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--modal-bg); width: 90%; max-width: 500px;
+            border-radius: 12px; padding: 25px; position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer; color: #aaa; }
+        
+        .modal-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;}
+        .big-symbol { font-size: 3rem; font-weight: bold; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #222;}
+        
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; font-size: 0.9rem;}
+        .data-item { background: #2b2b2b; padding: 8px; border-radius: 4px; }
+        .data-label { color: #888; font-size: 0.8em; display: block; }
+        .data-value { color: #fff; font-weight: bold; }
 
+        .orbital-diagram { margin-top: 20px; }
+        .orb-row { display: flex; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+        .orb-box { width: 30px; height: 30px; border: 1px solid #555; margin-right: 4px; display: flex; justify-content: center; align-items: center; background: #2b2b2b; color: #fff;}
     </style>
 </head>
 <body>
 
     <h1>Tavola Periodica Interattiva</h1>
 
-    <div class="legend-container">
-        <div class="legend-section">
-            <div class="legend-title">Categorie (Sfondo)</div>
-            <div class="legend-items">
-                <div class="legend-box cat-alkali">Alcalini</div>
-                <div class="legend-box cat-alkaline">Alcalino-terrosi</div>
-                <div class="legend-box cat-transition">Metalli Transizione</div>
-                <div class="legend-box cat-post-trans">Metalli Blocco P</div>
-                <div class="legend-box cat-metalloid">Metalloidi</div>
-                <div class="legend-box cat-nonmetal">Non Metalli</div>
-                <div class="legend-box cat-halogen">Alogeni</div>
-                <div class="legend-box cat-noble">Gas Nobili</div>
-                <div class="legend-box cat-lanthanide">Lantanidi</div>
-                <div class="legend-box cat-actinide">Attinidi</div>
-            </div>
-        </div>
-        <div class="legend-section">
-            <div class="legend-title">Stato a 25°C (Colore Testo)</div>
-            <div class="legend-items state-legend" style="background: #ccc; border-radius: 4px; padding: 2px;">
-                <span style="color: var(--state-solid)">Solido</span>
-                <span style="color: var(--state-liquid)">Liquido</span>
-                <span style="color: var(--state-gas)">Gas</span>
-            </div>
-        </div>
-    </div>
-
     <div class="controls">
-        <label>Inserisci Simbolo: <input type="text" id="elementInput" maxlength="3" placeholder="Es. C"></label>
-        <button onclick="calculateFromInput()">Genera</button>
-        <div id="result">Seleziona un elemento...</div>
+        <input type="text" id="searchInput" placeholder="Sym" maxlength="3">
+        <button class="search-btn" onclick="searchElement()">Cerca</button>
     </div>
 
-    <div class="periodic-table" id="periodicTable"></div>
+    <details class="info-panel" open>
+        <summary>Opzioni Visualizzazione & Legenda</summary>
+        <div class="info-content">
+            <div class="heatmap-controls">
+                <button class="hm-btn active" onclick="setMode('cat')">🎨 Categorie</button>
+                <button class="hm-btn" onclick="setMode('radius')">🔴 Raggio Atomico</button>
+                <button class="hm-btn" onclick="setMode('ion')">⚡ Ionizzazione</button>
+                <button class="hm-btn" onclick="setMode('affinity')">⚛️ Affinità Elettronica</button>
+            </div>
+
+            <div id="legendBar" class="legend-bar"></div>
+            <div id="legendLabels" class="legend-labels">
+                <span id="minVal">Low</span>
+                <span id="maxVal">High</span>
+            </div>
+            
+            <div id="catLegend" class="cat-legend-grid">
+                <div class="cat-item"><div class="cat-dot cat-alkali"></div>Alcalini</div>
+                <div class="cat-item"><div class="cat-dot cat-alkaline"></div>Alcalino-T</div>
+                <div class="cat-item"><div class="cat-dot cat-transition"></div>Transizione</div>
+                <div class="cat-item"><div class="cat-dot cat-lanthanide"></div>Lantanidi</div>
+                <div class="cat-item"><div class="cat-dot cat-actinide"></div>Attinidi</div>
+                <div class="cat-item"><div class="cat-dot cat-post-trans"></div>Metalli P</div>
+                <div class="cat-item"><div class="cat-dot cat-metalloid"></div>Metalloidi</div>
+                <div class="cat-item"><div class="cat-dot cat-nonmetal"></div>Non Metalli</div>
+                <div class="cat-item"><div class="cat-dot cat-halogen"></div>Alogeni</div>
+                <div class="cat-item"><div class="cat-dot cat-noble"></div>Gas Nobili</div>
+            </div>
+        </div>
+    </details>
+
+    <div class="table-wrapper">
+        <div class="periodic-table" id="periodicTable"></div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModalDirect()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
 
 <script>
-    /* DATI CONFIGURAZIONE ELETTRONICA */
-    const orbitals = [
-        { name: '1s', max: 2, n: 1 }, { name: '2s', max: 2, n: 2 }, { name: '2p', max: 6, n: 2 },
-        { name: '3s', max: 2, n: 3 }, { name: '3p', max: 6, n: 3 }, { name: '4s', max: 2, n: 4 },
-        { name: '3d', max: 10, n: 3 }, { name: '4p', max: 6, n: 4 }, { name: '5s', max: 2, n: 5 },
-        { name: '4d', max: 10, n: 4 }, { name: '5p', max: 6, n: 5 }, { name: '6s', max: 2, n: 6 },
-        { name: '4f', max: 14, n: 4 }, { name: '5d', max: 10, n: 5 }, { name: '6p', max: 6, n: 6 },
-        { name: '7s', max: 2, n: 7 }, { name: '5f', max: 14, n: 5 }, { name: '6d', max: 10, n: 6 },
-        { name: '7p', max: 6, n: 7 }
+    /* DATABASE COMPLETO 1-118 
+       z:Z, s:Simbolo, n:Nome, c:Cat, m:Massa(u), r:Raggio(pm), i:Ioniz(eV), a:Affinità(kJ/mol) */
+    const elementsData = [
+        {z:1,s:"H",n:"Idrogeno",c:"cat-nonmetal",m:1.008,r:53,i:13.6,a:73},
+        {z:2,s:"He",n:"Elio",c:"cat-noble",m:4.002,r:31,i:24.6,a:0},
+        {z:3,s:"Li",n:"Litio",c:"cat-alkali",m:6.94,r:167,i:5.4,a:60},
+        {z:4,s:"Be",n:"Berillio",c:"cat-alkaline",m:9.012,r:112,i:9.3,a:0},
+        {z:5,s:"B",n:"Boro",c:"cat-metalloid",m:10.81,r:87,i:8.3,a:27},
+        {z:6,s:"C",n:"Carbonio",c:"cat-nonmetal",m:12.01,r:67,i:11.3,a:122},
+        {z:7,s:"N",n:"Azoto",c:"cat-nonmetal",m:14.01,r:56,i:14.5,a:-7},
+        {z:8,s:"O",n:"Ossigeno",c:"cat-nonmetal",m:16.00,r:48,i:13.6,a:141},
+        {z:9,s:"F",n:"Fluoro",c:"cat-halogen",m:19.00,r:42,i:17.4,a:328},
+        {z:10,s:"Ne",n:"Neon",c:"cat-noble",m:20.18,r:38,i:21.6,a:0},
+        {z:11,s:"Na",n:"Sodio",c:"cat-alkali",m:22.99,r:190,i:5.1,a:53},
+        {z:12,s:"Mg",n:"Magnesio",c:"cat-alkaline",m:24.31,r:145,i:7.6,a:0},
+        {z:13,s:"Al",n:"Alluminio",c:"cat-post-trans",m:26.98,r:118,i:6.0,a:42},
+        {z:14,s:"Si",n:"Silicio",c:"cat-metalloid",m:28.09,r:111,i:8.1,a:134},
+        {z:15,s:"P",n:"Fosforo",c:"cat-nonmetal",m:30.97,r:98,i:10.5,a:72},
+        {z:16,s:"S",n:"Zolfo",c:"cat-nonmetal",m:32.06,r:88,i:10.4,a:200},
+        {z:17,s:"Cl",n:"Cloro",c:"cat-halogen",m:35.45,r:79,i:13.0,a:349},
+        {z:18,s:"Ar",n:"Argon",c:"cat-noble",m:39.95,r:71,i:15.8,a:0},
+        {z:19,s:"K",n:"Potassio",c:"cat-alkali",m:39.10,r:243,i:4.3,a:48},
+        {z:20,s:"Ca",n:"Calcio",c:"cat-alkaline",m:40.08,r:194,i:6.1,a:2},
+        {z:21,s:"Sc",n:"Scandio",c:"cat-transition",m:44.96,r:184,i:6.5,a:18},
+        {z:22,s:"Ti",n:"Titanio",c:"cat-transition",m:47.87,r:176,i:6.8,a:7},
+        {z:23,s:"V",n:"Vanadio",c:"cat-transition",m:50.94,r:171,i:6.7,a:51},
+        {z:24,s:"Cr",n:"Cromo",c:"cat-transition",m:52.00,r:166,i:6.8,a:64},
+        {z:25,s:"Mn",n:"Manganese",c:"cat-transition",m:54.94,r:161,i:7.4,a:0},
+        {z:26,s:"Fe",n:"Ferro",c:"cat-transition",m:55.85,r:156,i:7.9,a:16},
+        {z:27,s:"Co",n:"Cobalto",c:"cat-transition",m:58.93,r:152,i:7.9,a:64},
+        {z:28,s:"Ni",n:"Nichel",c:"cat-transition",m:58.69,r:149,i:7.6,a:112},
+        {z:29,s:"Cu",n:"Rame",c:"cat-transition",m:63.55,r:145,i:7.7,a:118},
+        {z:30,s:"Zn",n:"Zinco",c:"cat-transition",m:65.38,r:142,i:9.4,a:0},
+        {z:31,s:"Ga",n:"Gallio",c:"cat-post-trans",m:69.72,r:136,i:6.0,a:29},
+        {z:32,s:"Ge",n:"Germanio",c:"cat-metalloid",m:72.63,r:125,i:7.9,a:119},
+        {z:33,s:"As",n:"Arsenico",c:"cat-metalloid",m:74.92,r:114,i:9.8,a:78},
+        {z:34,s:"Se",n:"Selenio",c:"cat-nonmetal",m:78.96,r:103,i:9.8,a:195},
+        {z:35,s:"Br",n:"Bromo",c:"cat-halogen",m:79.90,r:94,i:11.8,a:325},
+        {z:36,s:"Kr",n:"Cripton",c:"cat-noble",m:83.79,r:88,i:14.0,a:0},
+        {z:37,s:"Rb",n:"Rubidio",c:"cat-alkali",m:85.47,r:265,i:4.2,a:47},
+        {z:38,s:"Sr",n:"Stronzio",c:"cat-alkaline",m:87.62,r:219,i:5.7,a:5},
+        {z:39,s:"Y",n:"Ittrio",c:"cat-transition",m:88.91,r:212,i:6.2,a:30},
+        {z:40,s:"Zr",n:"Zirconio",c:"cat-transition",m:91.22,r:206,i:6.6,a:41},
+        {z:41,s:"Nb",n:"Niobio",c:"cat-transition",m:92.91,r:198,i:6.7,a:86},
+        {z:42,s:"Mo",n:"Molibdeno",c:"cat-transition",m:95.95,r:190,i:7.1,a:72},
+        {z:43,s:"Tc",n:"Tecnezio",c:"cat-transition",m:98.00,r:183,i:7.3,a:53},
+        {z:44,s:"Ru",n:"Rutenio",c:"cat-transition",m:101.07,r:178,i:7.4,a:101},
+        {z:45,s:"Rh",n:"Rodio",c:"cat-transition",m:102.91,r:173,i:7.5,a:110},
+        {z:46,s:"Pd",n:"Palladio",c:"cat-transition",m:106.42,r:169,i:8.3,a:54},
+        {z:47,s:"Ag",n:"Argento",c:"cat-transition",m:107.87,r:165,i:7.6,a:126},
+        {z:48,s:"Cd",n:"Cadmio",c:"cat-transition",m:112.41,r:161,i:9.0,a:0},
+        {z:49,s:"In",n:"Indio",c:"cat-post-trans",m:114.82,r:156,i:5.8,a:29},
+        {z:50,s:"Sn",n:"Stagno",c:"cat-post-trans",m:118.71,r:145,i:7.3,a:107},
+        {z:51,s:"Sb",n:"Antimonio",c:"cat-metalloid",m:121.76,r:133,i:8.6,a:101},
+        {z:52,s:"Te",n:"Tellurio",c:"cat-metalloid",m:127.60,r:123,i:9.0,a:190},
+        {z:53,s:"I",n:"Iodio",c:"cat-halogen",m:126.90,r:115,i:10.5,a:295},
+        {z:54,s:"Xe",n:"Xeno",c:"cat-noble",m:131.29,r:108,i:12.1,a:0},
+        {z:55,s:"Cs",n:"Cesio",c:"cat-alkali",m:132.91,r:298,i:3.9,a:45},
+        {z:56,s:"Ba",n:"Bario",c:"cat-alkaline",m:137.33,r:253,i:5.2,a:14},
+        {z:57,s:"La",n:"Lantanio",c:"cat-lanthanide",m:138.91,r:195,i:5.6,a:48},
+        {z:58,s:"Ce",n:"Cerio",c:"cat-lanthanide",m:140.12,r:185,i:5.5,a:50},
+        {z:59,s:"Pr",n:"Praseodimio",c:"cat-lanthanide",m:140.91,r:247,i:5.4,a:50},
+        {z:60,s:"Nd",n:"Neodimio",c:"cat-lanthanide",m:144.24,r:206,i:5.5,a:50},
+        {z:61,s:"Pm",n:"Prometio",c:"cat-lanthanide",m:145.00,r:205,i:5.6,a:50},
+        {z:62,s:"Sm",n:"Samario",c:"cat-lanthanide",m:150.36,r:238,i:5.6,a:50},
+        {z:63,s:"Eu",n:"Europio",c:"cat-lanthanide",m:151.96,r:231,i:5.7,a:50},
+        {z:64,s:"Gd",n:"Gadolinio",c:"cat-lanthanide",m:157.25,r:233,i:6.1,a:50},
+        {z:65,s:"Tb",n:"Terbio",c:"cat-lanthanide",m:158.93,r:225,i:5.9,a:50},
+        {z:66,s:"Dy",n:"Disprosio",c:"cat-lanthanide",m:162.50,r:228,i:5.9,a:50},
+        {z:67,s:"Ho",n:"Olmio",c:"cat-lanthanide",m:164.93,r:226,i:6.0,a:50},
+        {z:68,s:"Er",n:"Erbio",c:"cat-lanthanide",m:167.26,r:226,i:6.1,a:50},
+        {z:69,s:"Tm",n:"Tulio",c:"cat-lanthanide",m:168.93,r:222,i:6.2,a:50},
+        {z:70,s:"Yb",n:"Itterbio",c:"cat-lanthanide",m:173.05,r:222,i:6.3,a:50},
+        {z:71,s:"Lu",n:"Lutezio",c:"cat-lanthanide",m:174.97,r:217,i:5.4,a:50},
+        {z:72,s:"Hf",n:"Afnio",c:"cat-transition",m:178.49,r:208,i:6.8,a:0},
+        {z:73,s:"Ta",n:"Tantalio",c:"cat-transition",m:180.95,r:200,i:7.9,a:31},
+        {z:74,s:"W",n:"Tungsteno",c:"cat-transition",m:183.84,r:193,i:8.0,a:79},
+        {z:75,s:"Re",n:"Renio",c:"cat-transition",m:186.21,r:188,i:7.9,a:14},
+        {z:76,s:"Os",n:"Osmio",c:"cat-transition",m:190.23,r:185,i:8.7,a:106},
+        {z:77,s:"Ir",n:"Iridio",c:"cat-transition",m:192.22,r:180,i:9.1,a:151},
+        {z:78,s:"Pt",n:"Platino",c:"cat-transition",m:195.08,r:177,i:9.0,a:205},
+        {z:79,s:"Au",n:"Oro",c:"cat-transition",m:196.97,r:174,i:9.2,a:223},
+        {z:80,s:"Hg",n:"Mercurio",c:"cat-transition",m:200.59,r:171,i:10.4,a:0},
+        {z:81,s:"Tl",n:"Tallio",c:"cat-post-trans",m:204.38,r:156,i:6.1,a:19},
+        {z:82,s:"Pb",n:"Piombo",c:"cat-post-trans",m:207.20,r:154,i:7.4,a:35},
+        {z:83,s:"Bi",n:"Bismuto",c:"cat-post-trans",m:208.98,r:143,i:7.3,a:91},
+        {z:84,s:"Po",n:"Polonio",c:"cat-metalloid",m:209.00,r:135,i:8.4,a:183},
+        {z:85,s:"At",n:"Astato",c:"cat-halogen",m:210.00,r:127,i:9.3,a:270},
+        {z:86,s:"Rn",n:"Radon",c:"cat-noble",m:222.00,r:120,i:10.7,a:0},
+        {z:87,s:"Fr",n:"Francio",c:"cat-alkali",m:223.00,r:270,i:4.1,a:47},
+        {z:88,s:"Ra",n:"Radio",c:"cat-alkaline",m:226.00,r:220,i:5.3,a:10},
+        {z:89,s:"Ac",n:"Attinio",c:"cat-actinide",m:227.00,r:195,i:5.2,a:34},
+        {z:90,s:"Th",n:"Torio",c:"cat-actinide",m:232.04,r:180,i:6.3,a:112},
+        {z:91,s:"Pa",n:"Protoattinio",c:"cat-actinide",m:231.04,r:163,i:5.9,a:53},
+        {z:92,s:"U",n:"Uranio",c:"cat-actinide",m:238.03,r:156,i:6.2,a:51},
+        {z:93,s:"Np",n:"Nettunio",c:"cat-actinide",m:237.00,r:155,i:6.3,a:46},
+        {z:94,s:"Pu",n:"Plutonio",c:"cat-actinide",m:244.00,r:159,i:6.1,a:-48},
+        {z:95,s:"Am",n:"Americio",c:"cat-actinide",m:243.00,r:173,i:6.0,a:10},
+        {z:96,s:"Cm",n:"Curio",c:"cat-actinide",m:247.00,r:174,i:6.0,a:27},
+        {z:97,s:"Bk",n:"Berkelio",c:"cat-actinide",m:247.00,r:170,i:6.2,a:-165},
+        {z:98,s:"Cf",n:"Californio",c:"cat-actinide",m:251.00,r:186,i:6.3,a:-97},
+        {z:99,s:"Es",n:"Einsteinio",c:"cat-actinide",m:252.00,r:186,i:6.4,a:-29},
+        {z:100,s:"Fm",n:"Fermio",c:"cat-actinide",m:257.00,r:null,i:6.5,a:null},
+        {z:101,s:"Md",n:"Mendelevio",c:"cat-actinide",m:258.00,r:null,i:6.6,a:null},
+        {z:102,s:"No",n:"Nobelio",c:"cat-actinide",m:259.00,r:null,i:6.7,a:null},
+        {z:103,s:"Lr",n:"Laurenzio",c:"cat-actinide",m:266.00,r:null,i:null,a:null},
+        {z:104,s:"Rf",n:"Rutherfordio",c:"cat-transition",m:267,r:null,i:null,a:null},
+        {z:105,s:"Db",n:"Dubnio",c:"cat-transition",m:268,r:null,i:null,a:null},
+        {z:106,s:"Sg",n:"Seaborgio",c:"cat-transition",m:269,r:null,i:null,a:null},
+        {z:107,s:"Bh",n:"Bohrio",c:"cat-transition",m:270,r:null,i:null,a:null},
+        {z:108,s:"Hs",n:"Hassio",c:"cat-transition",m:277,r:null,i:null,a:null},
+        {z:109,s:"Mt",n:"Meitnerio",c:"cat-unknown",m:278,r:null,i:null,a:null},
+        {z:110,s:"Ds",n:"Darmstadtio",c:"cat-unknown",m:281,r:null,i:null,a:null},
+        {z:111,s:"Rg",n:"Roentgenio",c:"cat-unknown",m:282,r:null,i:null,a:null},
+        {z:112,s:"Cn",n:"Copernicio",c:"cat-unknown",m:285,r:null,i:null,a:null},
+        {z:113,s:"Nh",n:"Nihonio",c:"cat-unknown",m:286,r:null,i:null,a:null},
+        {z:114,s:"Fl",n:"Flerovio",c:"cat-unknown",m:289,r:null,i:null,a:null},
+        {z:115,s:"Mc",n:"Moscovio",c:"cat-unknown",m:290,r:null,i:null,a:null},
+        {z:116,s:"Lv",n:"Livermorio",c:"cat-unknown",m:293,r:null,i:null,a:null},
+        {z:117,s:"Ts",n:"Tennessine",c:"cat-unknown",m:294,r:null,i:null,a:null},
+        {z:118,s:"Og",n:"Oganesson",c:"cat-unknown",m:294,r:null,i:null,a:null}
     ];
 
-    // Eccezioni (configurazioni stabili)
+    const orbitals = [
+        {name:'1s',m:2},{name:'2s',m:2},{name:'2p',m:6},{name:'3s',m:2},{name:'3p',m:6},
+        {name:'4s',m:2},{name:'3d',m:10},{name:'4p',m:6},{name:'5s',m:2},{name:'4d',m:10},
+        {name:'5p',m:6},{name:'6s',m:2},{name:'4f',m:14},{name:'5d',m:10},{name:'6p',m:6},
+        {name:'7s',m:2},{name:'5f',m:14},{name:'6d',m:10},{name:'7p',m:6}
+    ];
+    
+    // Eccezioni configurazione (per visualizzazione grafica)
     const exceptions = {
-        24: { conf: "1s<sup>2</sup> 2s<sup>2</sup> 2p<sup>6</sup> 3s<sup>2</sup> 3p<sup>6</sup> 4s<sup>1</sup> 3d<sup>5</sup>", val: 1 },
-        29: { conf: "1s<sup>2</sup> 2s<sup>2</sup> 2p<sup>6</sup> 3s<sup>2</sup> 3p<sup>6</sup> 4s<sup>1</sup> 3d<sup>10</sup>", val: 1 },
-        42: { conf: "[Kr] 5s<sup>1</sup> 4d<sup>5</sup>", full: true, val: 1 }, // Semplificato per visualizzazione
-        47: { conf: "[Kr] 5s<sup>1</sup> 4d<sup>10</sup>", full: true, val: 1 }
+        24: { override: { '4s':1, '3d':5 } }, 
+        29: { override: { '4s':1, '3d':10 } },
+        42: { override: { '5s':1, '4d':5 } }, 
+        47: { override: { '5s':1, '4d':10 } },
+        79: { override: { '6s':1, '4f':14, '5d':10 } }
     };
 
-    /* LISTA ELEMENTI COMPLETA */
-    const elementsList = [
-        {z:1,s:"H",n:"Idrogeno"},{z:2,s:"He",n:"Elio"},
-        {z:3,s:"Li",n:"Litio"},{z:4,s:"Be",n:"Berillio"},{z:5,s:"B",n:"Boro"},{z:6,s:"C",n:"Carbonio"},{z:7,s:"N",n:"Azoto"},{z:8,s:"O",n:"Ossigeno"},{z:9,s:"F",n:"Fluoro"},{z:10,s:"Ne",n:"Neon"},
-        {z:11,s:"Na",n:"Sodio"},{z:12,s:"Mg",n:"Magnesio"},{z:13,s:"Al",n:"Alluminio"},{z:14,s:"Si",n:"Silicio"},{z:15,s:"P",n:"Fosforo"},{z:16,s:"S",n:"Zolfo"},{z:17,s:"Cl",n:"Cloro"},{z:18,s:"Ar",n:"Argon"},
-        {z:19,s:"K",n:"Potassio"},{z:20,s:"Ca",n:"Calcio"},{z:21,s:"Sc",n:"Scandio"},{z:22,s:"Ti",n:"Titanio"},{z:23,s:"V",n:"Vanadio"},{z:24,s:"Cr",n:"Cromo"},{z:25,s:"Mn",n:"Manganese"},{z:26,s:"Fe",n:"Ferro"},{z:27,s:"Co",n:"Cobalto"},{z:28,s:"Ni",n:"Nichel"},{z:29,s:"Cu",n:"Rame"},{z:30,s:"Zn",n:"Zinco"},{z:31,s:"Ga",n:"Gallio"},{z:32,s:"Ge",n:"Germanio"},{z:33,s:"As",n:"Arsenico"},{z:34,s:"Se",n:"Selenio"},{z:35,s:"Br",n:"Bromo"},{z:36,s:"Kr",n:"Cripton"},
-        {z:37,s:"Rb",n:"Rubidio"},{z:38,s:"Sr",n:"Stronzio"},{z:39,s:"Y",n:"Ittrio"},{z:40,s:"Zr",n:"Zirconio"},{z:41,s:"Nb",n:"Niobio"},{z:42,s:"Mo",n:"Molibdeno"},{z:43,s:"Tc",n:"Tecnezio"},{z:44,s:"Ru",n:"Rutenio"},{z:45,s:"Rh",n:"Rodio"},{z:46,s:"Pd",n:"Palladio"},{z:47,s:"Ag",n:"Argento"},{z:48,s:"Cd",n:"Cadmio"},{z:49,s:"In",n:"Indio"},{z:50,s:"Sn",n:"Stagno"},{z:51,s:"Sb",n:"Antimonio"},{z:52,s:"Te",n:"Tellurio"},{z:53,s:"I",n:"Iodio"},{z:54,s:"Xe",n:"Xeno"},
-        {z:55,s:"Cs",n:"Cesio"},{z:56,s:"Ba",n:"Bario"},
-        {z:57,s:"La",n:"Lantanio"},{z:58,s:"Ce",n:"Cerio"},{z:59,s:"Pr",n:"Praseodimio"},{z:60,s:"Nd",n:"Neodimio"},{z:61,s:"Pm",n:"Prometio"},{z:62,s:"Sm",n:"Samario"},{z:63,s:"Eu",n:"Europio"},{z:64,s:"Gd",n:"Gadolinio"},{z:65,s:"Tb",n:"Terbio"},{z:66,s:"Dy",n:"Disprosio"},{z:67,s:"Ho",n:"Olmio"},{z:68,s:"Er",n:"Erbio"},{z:69,s:"Tm",n:"Tulio"},{z:70,s:"Yb",n:"Itterbio"},{z:71,s:"Lu",n:"Lutezio"},
-        {z:72,s:"Hf",n:"Afnio"},{z:73,s:"Ta",n:"Tantalio"},{z:74,s:"W",n:"Tungsteno"},{z:75,s:"Re",n:"Renio"},{z:76,s:"Os",n:"Osmio"},{z:77,s:"Ir",n:"Iridio"},{z:78,s:"Pt",n:"Platino"},{z:79,s:"Au",n:"Oro"},{z:80,s:"Hg",n:"Mercurio"},{z:81,s:"Tl",n:"Tallio"},{z:82,s:"Pb",n:"Piombo"},{z:83,s:"Bi",n:"Bismuto"},{z:84,s:"Po",n:"Polonio"},{z:85,s:"At",n:"Astato"},{z:86,s:"Rn",n:"Radon"},
-        {z:87,s:"Fr",n:"Francio"},{z:88,s:"Ra",n:"Radio"},
-        {z:89,s:"Ac",n:"Attinio"},{z:90,s:"Th",n:"Torio"},{z:91,s:"Pa",n:"Protoattinio"},{z:92,s:"U",n:"Uranio"},{z:93,s:"Np",n:"Nettunio"},{z:94,s:"Pu",n:"Plutonio"},{z:95,s:"Am",n:"Americio"},{z:96,s:"Cm",n:"Curio"},{z:97,s:"Bk",n:"Berkelio"},{z:98,s:"Cf",n:"Californio"},{z:99,s:"Es",n:"Einsteinio"},{z:100,s:"Fm",n:"Fermio"},{z:101,s:"Md",n:"Mendelevio"},{z:102,s:"No",n:"Nobelio"},{z:103,s:"Lr",n:"Laurenzio"},
-        {z:104,s:"Rf",n:"Rutherfordio"},{z:105,s:"Db",n:"Dubnio"},{z:106,s:"Sg",n:"Seaborgio"},{z:107,s:"Bh",n:"Bohrio"},{z:108,s:"Hs",n:"Hassio"},{z:109,s:"Mt",n:"Meitnerio"},{z:110,s:"Ds",n:"Darmstadtio"},{z:111,s:"Rg",n:"Roentgenio"},{z:112,s:"Cn",n:"Copernicio"},{z:113,s:"Nh",n:"Nihonio"},{z:114,s:"Fl",n:"Flerovio"},{z:115,s:"Mc",n:"Moscovio"},{z:116,s:"Lv",n:"Livermorio"},{z:117,s:"Ts",n:"Tennessine"},{z:118,s:"Og",n:"Oganesson"}
-    ];
-
-    /* LOGICA CATEGORIE E STATI */
-    function getCategory(z) {
-        if (z === 1) return 'cat-nonmetal'; // Idrogeno
-        if (z === 2 || [10,18,36,54,86,118].includes(z)) return 'cat-noble';
-        if ([3,11,19,37,55,87].includes(z)) return 'cat-alkali';
-        if ([4,12,20,38,56,88].includes(z)) return 'cat-alkaline';
-        if ([9,17,35,53,85,117].includes(z)) return 'cat-halogen';
-        
-        // Lantanidi e Attinidi
-        if (z >= 57 && z <= 71) return 'cat-lanthanide';
-        if (z >= 89 && z <= 103) return 'cat-actinide';
-
-        // Metalloidi (Semi-metalli) - Diagonale B, Si, Ge, As, Sb, Te, Po
-        const metalloids = [5, 14, 32, 33, 51, 52, 84]; 
-        if (metalloids.includes(z)) return 'cat-metalloid';
-
-        // Altri Non Metalli (C, N, O, P, S, Se)
-        const otherNonMetals = [6, 7, 8, 15, 16, 34];
-        if (otherNonMetals.includes(z)) return 'cat-nonmetal';
-
-        // Metalli del blocco P (Post-transizione): Al, Ga, In, Sn, Tl, Pb, Bi, Fl, Lv...
-        // Semplificazione: Se è nel blocco p e non è metalloide/non-metallo/alogeno/gas nobile
-        // Blocco p: Gruppi 13-18. 
-        // Identifichiamo approssimativamente i post-transizione rimanenti
-        const postTransition = [13, 31, 49, 50, 81, 82, 83, 113, 114, 115, 116];
-        if (postTransition.includes(z)) return 'cat-post-trans';
-
-        // Metalli di Transizione (Blocco d)
-        return 'cat-transition';
-    }
-
-    function getState(z) {
-        // Liquidi a STP
-        if (z === 35 || z === 80) return 'state-liquid'; // Br, Hg
-        // Gas a STP
-        if ([1, 2, 7, 8, 9, 10, 17, 18, 36, 54, 86, 118].includes(z)) return 'state-gas';
-        // Solidi
-        return 'state-solid';
-    }
-
-    /* CALCOLO CONFIGURAZIONE E VALENZA */
-    function calculateData(atomicNumber) {
-        let electrons = atomicNumber;
-        let configStr = "";
+    /* --- LOGICA CALCOLO ORBITALI & VALENZA --- */
+    function getElectronDistribution(z) {
+        let electrons = z;
+        let distribution = [];
         let maxN = 0;
-        
-        // Calcolo configurazione standard
-        let currentElectrons = {}; // Mappa { "n-orbital": count }
+        let shellCounts = {};
 
-        for (let orb of orbitals) {
-            if (electrons <= 0) break;
-            let take = Math.min(electrons, orb.max);
-            
-            configStr += `${orb.name}<sup>${take}</sup> `;
-            
-            // Per il calcolo di valenza (semplificato: guscio più esterno)
-            if (orb.n > maxN) maxN = orb.n;
-            if (!currentElectrons[orb.n]) currentElectrons[orb.n] = 0;
-            currentElectrons[orb.n] += take;
-            
+        for(let o of orbitals) {
+            if(electrons <= 0) break;
+            let take = Math.min(electrons, o.m);
             electrons -= take;
+            distribution.push({ name: o.name, count: take, max: o.m });
+            
+            // Calcolo valenza (guscio n più esterno)
+            let n = parseInt(o.name.charAt(0));
+            if(n > maxN) maxN = n;
+            if(!shellCounts[n]) shellCounts[n] = 0;
+            shellCounts[n] += take;
         }
 
-        // Calcolo Elettroni di Valenza (Livello più esterno)
-        // Nota: Per i metalli di transizione la definizione varia, qui usiamo il "Guscio Esterno" standard (ns + np)
-        let valence = currentElectrons[maxN] || 0;
+        if(exceptions[z]) {
+            let overrides = exceptions[z].override;
+            distribution.forEach(d => {
+                if(overrides[d.name] !== undefined) {
+                    let n = parseInt(d.name.charAt(0));
+                    shellCounts[n] -= d.count; // rimuovi vecchi
+                    d.count = overrides[d.name];
+                    shellCounts[n] += d.count; // aggiungi nuovi
+                }
+            });
+        }
+        
+        let valence = shellCounts[maxN] || 0;
+        return { dist: distribution, valence: valence };
+    }
 
-        // Gestione Eccezioni (Cromo, Rame, etc)
-        if (exceptions[atomicNumber]) {
-            if(exceptions[atomicNumber].full) {
-               // Se l'eccezione è definita solo come stringa visuale
-               configStr = exceptions[atomicNumber].conf;
-               valence = exceptions[atomicNumber].val;
-            } else {
-               configStr = exceptions[atomicNumber].conf;
-               valence = exceptions[atomicNumber].val;
+    /* --- LOGICA HEATMAP --- */
+    let currentMode = 'cat';
+
+    function setMode(mode) {
+        currentMode = mode;
+        
+        // Aggiorna pulsanti
+        document.querySelectorAll('.hm-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.hm-btn[onclick="setMode('${mode}')"]`).classList.add('active');
+
+        // Aggiorna Legenda UI
+        const legendBar = document.getElementById('legendBar');
+        const legendLabels = document.getElementById('legendLabels');
+        const catLegend = document.getElementById('catLegend');
+        const minL = document.getElementById('minVal');
+        const maxL = document.getElementById('maxVal');
+
+        if(mode === 'cat') {
+            legendBar.style.display = 'none';
+            legendLabels.style.display = 'none';
+            catLegend.style.display = 'grid';
+        } else {
+            legendBar.style.display = 'block';
+            legendLabels.style.display = 'flex';
+            catLegend.style.display = 'none';
+
+            if(mode === 'radius') {
+                legendBar.style.background = 'linear-gradient(90deg, #fff, #0051ff)';
+                minL.innerText = '30pm'; maxL.innerText = '300pm';
+            } else if (mode === 'ion') {
+                legendBar.style.background = 'linear-gradient(90deg, #fff, #ffcc00, #ff0000)';
+                minL.innerText = '3eV'; maxL.innerText = '25eV';
+            } else if (mode === 'affinity') {
+                legendBar.style.background = 'linear-gradient(90deg, #fff, #00ff00)';
+                minL.innerText = '0'; maxL.innerText = '350 kJ/mol';
             }
         }
-
-        return {
-            config: configStr.trim(),
-            valence: valence
-        };
+        renderTable();
     }
 
-    function calculateFromInput() {
-        const input = document.getElementById('elementInput').value.trim();
-        const resultDiv = document.getElementById('result');
-        const el = elementsList.find(e => e.s.toLowerCase() === input.toLowerCase());
-
-        if (!el) {
-            resultDiv.innerHTML = "<span style='color:red'>Elemento non trovato!</span>";
-            return;
-        }
-
-        const data = calculateData(el.z);
+    function getColorForValue(el) {
+        let val = 0, min = 0, max = 0;
         
-        // Recupero stato fisico per testo risultato
-        const stateClass = getState(el.z);
-        let stateText = stateClass === 'state-gas' ? 'Gas' : (stateClass === 'state-liquid' ? 'Liquido' : 'Solido');
-
-        resultDiv.innerHTML = `
-            <strong>${el.n} (${el.s})</strong><br>
-            Numero Atomico (Z): ${el.z}<br>
-            Stato (25°C): ${stateText}<br>
-            <hr style="border:0; border-top:1px solid #444; margin: 5px 0;">
-            Configurazione: ${data.config}<br>
-            Elettroni di valenza (livello esterno): <strong>${data.valence}</strong>
-        `;
+        if(currentMode === 'radius') {
+            val = el.r; min = 30; max = 300;
+            if(val === null) return '#222';
+            let p = (val - min) / (max - min);
+            if(p<0) p=0; if(p>1) p=1;
+            // White -> Blue
+            let r = 255 - (255 * p); let g = 255 - (175 * p); let b = 255;
+            return `rgb(${r},${g},${b})`;
+        }
+        if(currentMode === 'ion') {
+            val = el.i; min = 3; max = 25;
+            if(val === null) return '#222';
+            let p = (val - min) / (max - min);
+            if(p<0) p=0; if(p>1) p=1;
+            // White -> Yellow -> Red
+            // Simplif: White -> Red
+            let r = 255; let g = 255 - (255 * p); let b = 255 - (255 * p);
+            return `rgb(${r},${g},${b})`;
+        }
+        if(currentMode === 'affinity') {
+            val = el.a; min = 0; max = 350;
+            if(val === null || val < 0) return '#222';
+            let p = (val - min) / (max - min);
+            if(p<0) p=0; if(p>1) p=1;
+            // White -> Green
+            let r = 255 - (255 * p); let g = 255; let b = 255 - (255 * p);
+            return `rgb(${r},${g},${b})`;
+        }
+        return '#222';
     }
 
-    function displayEl(symbol) {
-        document.getElementById('elementInput').value = symbol;
-        calculateFromInput();
-    }
-
-    /* RENDER DELLA TABELLA */
+    /* --- RENDERING TABELLA --- */
     function renderTable() {
         const table = document.getElementById('periodicTable');
-        
-        const createElDiv = (el) => {
-            const div = document.createElement('div');
-            // Assegna classi: base + categoria + stato
-            div.className = `element ${getCategory(el.z)} ${getState(el.z)}`;
-            div.innerHTML = `<span class="number">${el.z}</span><span class="symbol">${el.s}</span><span class="name">${el.n}</span>`;
-            div.onclick = () => displayEl(el.s);
+        table.innerHTML = '';
+
+        // Headers
+        const groupMap = [
+            {i:1,t:"IA"}, {i:2,t:"IIA"}, {i:3,t:"IIIB"}, {i:4,t:"IVB"}, {i:5,t:"VB"}, {i:6,t:"VIB"}, {i:7,t:"VIIB"},
+            {i:8,t:"VIII"}, {i:9,t:"VIII"}, {i:10,t:"VIII"}, {i:11,t:"IB"}, {i:12,t:"IIB"}, {i:13,t:"IIIA"}, {i:14,t:"IVA"}, {i:15,t:"VA"}, {i:16,t:"VIA"}, {i:17,t:"VIIA"}, {i:18,t:"VIIIA"}
+        ];
+        groupMap.forEach(g => {
+            const h = document.createElement('div'); h.className = 'group-header';
+            h.innerHTML = `<span class="num-iupac">${g.i}</span><span class="num-trad">${g.t}</span>`;
+            table.appendChild(h);
+        });
+
+        // Helper render elemento
+        const createEl = (z) => {
+            let el = elementsData[z-1];
+            let div = document.createElement('div');
+            
+            if(currentMode === 'cat') {
+                div.className = `element ${el.c}`;
+                div.style.background = ''; // reset inline
+                div.style.color = '#222';
+            } else {
+                div.className = `element`;
+                let bgColor = getColorForValue(el);
+                div.style.background = bgColor;
+                div.style.color = (bgColor === '#222') ? '#555' : '#000'; // Contrast fix
+            }
+            
+            // Text Content (Data value if heatmap)
+            let bottomText = `<span class="name">${el.n}</span>`;
+            if(currentMode !== 'cat') {
+                let valStr = '';
+                if(currentMode === 'radius') valStr = el.r ? el.r : '-';
+                if(currentMode === 'ion') valStr = el.i ? el.i : '-';
+                if(currentMode === 'affinity') valStr = el.a ? el.a : '-';
+                bottomText = `<span class="val-data" style="display:block">${valStr}</span>`;
+            }
+
+            div.innerHTML = `<span class="number">${el.z}</span><span class="symbol">${el.s}</span>${bottomText}`;
+            div.onclick = () => openModal(el);
             return div;
         };
         
-        const addSpacer = (cls) => {
-            const d = document.createElement('div');
-            d.className = cls;
-            table.appendChild(d);
-        };
+        const spacer = (cls) => { const d=document.createElement('div'); d.className=cls; return d; }
 
-        // Riga 1
-        table.appendChild(createElDiv(elementsList[0]));
-        addSpacer('col-span-16');
-        table.appendChild(createElDiv(elementsList[1]));
+        // Grid Layout (Period 1-7)
+        table.append(createEl(1)); table.append(spacer('col-span-16')); table.append(createEl(2));
+        table.append(createEl(3), createEl(4)); table.append(spacer('col-span-10')); for(let i=5;i<11;i++) table.append(createEl(i));
+        table.append(createEl(11), createEl(12)); table.append(spacer('col-span-10')); for(let i=13;i<19;i++) table.append(createEl(i));
+        for(let i=19;i<37;i++) table.append(createEl(i));
+        for(let i=37;i<55;i++) table.append(createEl(i));
+        // Period 6 (Cs, Ba, Placeholder, Hf-Rn)
+        table.append(createEl(55), createEl(56)); 
+        let lanth = document.createElement('div'); lanth.className='element cat-lanthanide'; lanth.innerHTML='57-71'; table.append(lanth);
+        for(let i=72;i<87;i++) table.append(createEl(i));
+        // Period 7
+        table.append(createEl(87), createEl(88));
+        let act = document.createElement('div'); act.className='element cat-actinide'; act.innerHTML='89-103'; table.append(act);
+        for(let i=104;i<119;i++) table.append(createEl(i));
 
-        // Riga 2
-        table.appendChild(createElDiv(elementsList[2]));
-        table.appendChild(createElDiv(elementsList[3]));
-        addSpacer('col-span-10');
-        for(let i=4; i<10; i++) table.appendChild(createElDiv(elementsList[i]));
-
-        // Riga 3
-        table.appendChild(createElDiv(elementsList[10]));
-        table.appendChild(createElDiv(elementsList[11]));
-        addSpacer('col-span-10');
-        for(let i=12; i<18; i++) table.appendChild(createElDiv(elementsList[i]));
-
-        // Riga 4
-        for(let i=18; i<36; i++) table.appendChild(createElDiv(elementsList[i]));
-
-        // Riga 5
-        for(let i=36; i<54; i++) table.appendChild(createElDiv(elementsList[i]));
-
-        // Riga 6
-        table.appendChild(createElDiv(elementsList[54])); // Cs
-        table.appendChild(createElDiv(elementsList[55])); // Ba
+        // F-Block (Lanthanides/Actinides)
+        table.append(spacer('row-spacer'));
+        table.append(spacer('lanth-spacer')); 
+        let emptyL = document.createElement('div'); emptyL.style.gridColumn='span 1'; table.append(emptyL);
+        for(let i=57;i<72;i++) table.append(createEl(i)); // La-Lu
         
-        // Segnaposto Lantanidi
-        const lanthHold = document.createElement('div');
-        lanthHold.className = 'element cat-lanthanide';
-        lanthHold.innerHTML = '<span class="symbol">57-71</span>';
-        table.appendChild(lanthHold);
-        
-        for(let i=71; i<86; i++) table.appendChild(createElDiv(elementsList[i])); // Hf - Rn
-
-        // Riga 7
-        table.appendChild(createElDiv(elementsList[86])); // Fr
-        table.appendChild(createElDiv(elementsList[87])); // Ra
-        
-        // Segnaposto Attinidi
-        const actHold = document.createElement('div');
-        actHold.className = 'element cat-actinide';
-        actHold.innerHTML = '<span class="symbol">89-103</span>';
-        table.appendChild(actHold);
-
-        for(let i=103; i<118; i++) table.appendChild(createElDiv(elementsList[i])); // Rf - Og
-
-        // Separatore
-        addSpacer('row-spacer');
-
-        // Lantanidi (Riga espansa in basso)
-        addSpacer('lanth-gap'); // Sposta a destra per allineare
-        const emptyL = document.createElement('div'); emptyL.style.gridColumn = 'span 1'; table.appendChild(emptyL);
-        for(let i=56; i<71; i++) table.appendChild(createElDiv(elementsList[i]));
-        addSpacer('gap-spacer');
-
-        // Attinidi
-        addSpacer('lanth-gap');
-        const emptyA = document.createElement('div'); emptyA.style.gridColumn = 'span 1'; table.appendChild(emptyA);
-        for(let i=88; i<103; i++) table.appendChild(createElDiv(elementsList[i]));
+        table.append(spacer('row-spacer'));
+        table.append(spacer('lanth-spacer'));
+        let emptyA = document.createElement('div'); emptyA.style.gridColumn='span 1'; table.append(emptyA);
+        for(let i=89;i<104;i++) table.append(createEl(i)); // Ac-Lr
     }
 
-    renderTable();
-</script>
+    /* --- MODAL --- */
+    function openModal(el) {
+        const modal = document.getElementById('modalOverlay');
+        const body = document.getElementById('modalBody');
+        
+        const calc = getElectronDistribution(el.z);
+        const dist = calc.dist;
+        const valence = calc.valence;
 
+        // Visualizzazione Orbitali
+        let orbitalHtml = `<div class="orbital-diagram"><h3>Diagramma Orbitali</h3>`;
+        // Mostra solo gli ultimi 5 livelli popolati per non intasare
+        let showDist = dist.length > 5 ? dist.slice(dist.length - 5) : dist;
+        if(dist.length > 5) orbitalHtml += `<p style="font-size:0.8em; color:#666; margin-top:-10px;">(Core [..] nascosto)</p>`;
+
+        showDist.forEach(item => {
+            let boxes = '';
+            let slots = item.name.includes('s')?1:item.name.includes('p')?3:item.name.includes('d')?5:7;
+            for(let i=0; i<slots; i++) {
+                let s = '&nbsp;';
+                if(item.count > i) s='&#8593;'; // Up
+                if(item.count > i+slots) s='&#8645;'; // Up-Down
+                boxes += `<div class="orb-box">${s}</div>`;
+            }
+            orbitalHtml += `<div class="orb-row"><div style="width:30px; color:var(--accent)">${item.name}</div>${boxes}<span style="margin-left:5px; color:#888">(${item.count})</span></div>`;
+        });
+        orbitalHtml += `</div>`;
+
+        let configText = dist.map(d => `${d.name}<sup>${d.count}</sup>`).join(' ');
+
+        body.innerHTML = `
+            <div class="modal-header">
+                <div class="big-symbol ${el.c}" style="background:var(--accent); color:#000;">${el.s}</div>
+                <div class="modal-details">
+                    <h2>${el.n}</h2>
+                    <p>Numero Atomico (Z): <strong>${el.z}</strong></p>
+                    <p>Massa: <strong>${el.m} u</strong></p>
+                    <p style="color:#aaa; font-family:monospace; margin-top:5px;">${configText}</p>
+                </div>
+            </div>
+
+            <div class="data-grid">
+                <div class="data-item">
+                    <span class="data-label">Elettroni Valenza</span>
+                    <span class="data-value" style="font-size:1.4em; color:var(--accent)">${valence}</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Raggio Atomico</span>
+                    <span class="data-value">${el.r ? el.r+' pm' : 'N/A'}</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">1ª Ionizzazione</span>
+                    <span class="data-value">${el.i ? el.i+' eV' : 'N/A'}</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Affinità Elettr.</span>
+                    <span class="data-value">${el.a !== null ? el.a+' kJ/mol' : 'N/A'}</span>
+                </div>
+            </div>
+            ${orbitalHtml}
+        `;
+        modal.classList.add('active');
+    }
+
+    function closeModal(e) { if(e.target.id === 'modalOverlay') closeModalDirect(); }
+    function closeModalDirect() { document.getElementById('modalOverlay').classList.remove('active'); }
+    
+    function searchElement() {
+        const input = document.getElementById('searchInput').value.trim().toLowerCase();
+        const el = elementsData.find(e => e.s.toLowerCase() === input);
+        if(el) openModal(el);
+        else alert('Elemento non trovato');
+    }
+
+    // Inizializza
+    renderTable();
+
+</script>
 </body>
 </html>
